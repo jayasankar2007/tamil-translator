@@ -8,9 +8,7 @@ type HistoryItem = {
   created_at: string
 }
 
-const API_URL =
-  import.meta.env.VITE_API_URL ||
-  "https://tamil-translator-k3bb.onrender.com"
+const API_URL = "https://tamil-translator-k3bb.onrender.com"
 
 function App() {
   const [text, setText] = useState("")
