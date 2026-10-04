@@ -55,7 +55,7 @@ function App() {
 
     try {
       const response = await fetch(
-        "http://localhost:5000/translate",
+        "https://tamil-translator-k3bb.onrender.com/translate",
         {
           method: "POST",
           headers: {
@@ -90,7 +90,7 @@ function App() {
   async function loadHistory() {
     try {
       const response = await fetch(
-        "http://localhost:5000/history"
+        "https://tamil-translator-k3bb.onrender.com/history"
       )
 
       if (!response.ok) {
