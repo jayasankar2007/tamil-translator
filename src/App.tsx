@@ -1,4 +1,3 @@
-
 import { useState } from "react"
 import "./App.css"
 
@@ -8,6 +7,10 @@ type HistoryItem = {
   tamil: string
   created_at: string
 }
+
+const API_URL =
+  import.meta.env.VITE_API_URL ||
+  "https://tamil-translator-k3bb.onrender.com"
 
 function App() {
   const [text, setText] = useState("")
@@ -34,7 +37,8 @@ function App() {
         setCopied(false)
       }, 2000)
     } catch (error) {
-      console.error("Copy failed:", error)
+      console.error(error)
+      setError("Could not copy translation.")
     }
   }
 
@@ -43,7 +47,7 @@ function App() {
       setError(
         direction === "en-ta"
           ? "Please enter some English text."
-          : "தயவுசெய்து தமிழில் உரையை உள்ளிடவும்."
+          : "Please enter some Tamil text."
       )
       return
     }
@@ -51,36 +55,31 @@ function App() {
     setLoading(true)
     setError("")
     setTranslation("")
-    setCopied(false)
 
     try {
-      const response = await fetch(
-        "https://tamil-translator-k3bb.onrender.com/translate",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            text: text,
-            direction: direction,
-          }),
-        }
-      )
+      const response = await fetch(`${API_URL}/translate`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          text: text.trim(),
+          direction: direction,
+        }),
+      })
 
       const data = await response.json()
 
       if (!response.ok) {
-        throw new Error(
-          data.error || "Translation failed"
-        )
+        throw new Error(data.error || "Translation failed")
       }
 
-      setTranslation(data.translation)
+      setTranslation(data.translation || "")
     } catch (error) {
       console.error(error)
+
       setError(
-        "Translation failed. Please try again."
+        "Translation failed. Please check your connection and try again."
       )
     } finally {
       setLoading(false)
@@ -88,15 +87,13 @@ function App() {
   }
 
   async function loadHistory() {
+    setError("")
+
     try {
-      const response = await fetch(
-        "https://tamil-translator-k3bb.onrender.com/history"
-      )
+      const response = await fetch(`${API_URL}/history`)
 
       if (!response.ok) {
-        throw new Error(
-          "Failed to load history"
-        )
+        throw new Error("Failed to load history")
       }
 
       const data = await response.json()
@@ -105,9 +102,7 @@ function App() {
       setShowHistory(true)
     } catch (error) {
       console.error(error)
-      setError(
-        "Could not load translation history."
-      )
+      setError("Could not load translation history.")
     }
   }
 
@@ -119,34 +114,26 @@ function App() {
     if (!confirmed) return
 
     try {
-      const response = await fetch(
-        "http://localhost:5000/history",
-        {
-          method: "DELETE",
-        }
-      )
+      const response = await fetch(`${API_URL}/history`, {
+        method: "DELETE",
+      })
 
       if (!response.ok) {
-        throw new Error(
-          "Failed to clear history"
-        )
+        throw new Error("Failed to clear history")
       }
 
       setHistory([])
       setShowHistory(true)
+      setError("")
     } catch (error) {
       console.error(error)
-      setError(
-        "Could not clear translation history."
-      )
+      setError("Could not clear translation history.")
     }
   }
 
   function swapDirection() {
-    setDirection(
-      direction === "en-ta"
-        ? "ta-en"
-        : "en-ta"
+    setDirection((current) =>
+      current === "en-ta" ? "ta-en" : "en-ta"
     )
 
     setText("")
@@ -155,25 +142,24 @@ function App() {
     setCopied(false)
   }
 
-  const sourceLanguage =
-    direction === "en-ta"
-      ? "English"
-      : "தமிழ்"
+  function scrollToTranslator() {
+    document
+      .querySelector(".translator")
+      ?.scrollIntoView({
+        behavior: "smooth",
+      })
+  }
 
-  const targetLanguage =
-    direction === "en-ta"
-      ? "Tamil"
-      : "English"
+  const inputLanguage =
+    direction === "en-ta" ? "English" : "தமிழ்"
 
-  const translatorTitle =
-    direction === "en-ta"
-      ? "English → தமிழ்"
-      : "தமிழ் → English"
+  const outputLanguage =
+    direction === "en-ta" ? "Tamil" : "English"
 
   const inputPlaceholder =
     direction === "en-ta"
       ? "Type your English text here..."
-      : "தமிழில் உரையை உள்ளிடவும்..."
+      : "தமிழில் உங்கள் உரையை இங்கே உள்ளிடுங்கள்..."
 
   const outputPlaceholder =
     direction === "en-ta"
@@ -187,29 +173,31 @@ function App() {
       <section className="hero">
 
         <p className="badge">
-          ENGLISH ⇄ தமிழ்
+          {direction === "en-ta"
+            ? "ENGLISH → தமிழ்"
+            : "தமிழ் → ENGLISH"}
         </p>
 
         <h1>
-          Translate English and Tamil
+          Translate
+          <br />
+          <span>
+            {direction === "en-ta"
+              ? "English into Tamil"
+              : "Tamil into English"}
+          </span>
         </h1>
 
         <p className="subtitle">
-          A simple and fast English ↔ Tamil
-          translation tool.
+          A simple, fast and easy-to-use language translation
+          tool with translation history.
         </p>
 
         <button
           className="start-button"
-          onClick={() => {
-            document
-              .querySelector(".translator")
-              ?.scrollIntoView({
-                behavior: "smooth",
-              })
-          }}
+          onClick={scrollToTranslator}
         >
-          Start Translating
+          Start Translating →
         </button>
 
       </section>
@@ -217,91 +205,116 @@ function App() {
       {/* TRANSLATOR SECTION */}
       <section className="translator">
 
-        <h2>
-          {translatorTitle}
-        </h2>
+        <div className="translator-header">
 
-        {/* INPUT LANGUAGE */}
-        <label>
-          {sourceLanguage}
-        </label>
+          <div>
+            <p className="section-label">
+              TRANSLATION TOOL
+            </p>
 
-        <textarea
-          value={text}
-          maxLength={4000}
-          onChange={(event) =>
-            setText(event.target.value)
-          }
-          placeholder={inputPlaceholder}
-        />
+            <h2>
+              {direction === "en-ta"
+                ? "English → தமிழ்"
+                : "தமிழ் → English"}
+            </h2>
 
-        <p className="character-count">
-          {text.length}/4000 characters
-        </p>
+            <p className="section-description">
+              Enter your text below and get your translation instantly.
+            </p>
+          </div>
 
-        {/* BUTTONS */}
-        <div className="actions">
-
-          {/* SWAP */}
           <button
             className="swap-button"
             onClick={swapDirection}
-            type="button"
+            title="Swap translation direction"
           >
             ⇄ Swap
           </button>
 
-          {/* TRANSLATE */}
+        </div>
+
+        {/* INPUT */}
+        <div className="language-card">
+
+          <div className="language-header">
+
+            <label>
+              {inputLanguage}
+            </label>
+
+            <span>
+              {text.length}/4000
+            </span>
+
+          </div>
+
+          <textarea
+            value={text}
+            maxLength={4000}
+            onChange={(event) =>
+              setText(event.target.value)
+            }
+            placeholder={inputPlaceholder}
+          />
+
+        </div>
+
+        {/* ACTION BUTTONS */}
+        <div className="actions">
+
           <button
             className="translate-button"
             onClick={translateText}
             disabled={loading}
-            type="button"
           >
             {loading
               ? "Translating..."
-              : "Translate"}
+              : "Translate →"}
           </button>
 
-          {/* HISTORY */}
           <button
             className="history-button"
             onClick={loadHistory}
-            type="button"
           >
             History
           </button>
 
         </div>
 
-        {/* OUTPUT LANGUAGE */}
-        <label>
-          {targetLanguage}
-        </label>
+        {/* ERROR */}
+        {error && (
+          <div className="error-message">
+            {error}
+          </div>
+        )}
 
-        <div className="translation-box">
+        {/* OUTPUT */}
+        <div className="language-card output-card">
 
-          <div className="translation-result">
+          <div className="language-header">
 
-            {error
-              ? error
-              : translation ||
-                outputPlaceholder}
+            <label>
+              {outputLanguage}
+            </label>
+
+            {translation && !error && (
+              <button
+                className="copy-button"
+                onClick={copyTranslation}
+              >
+                {copied ? "Copied ✓" : "Copy"}
+              </button>
+            )}
 
           </div>
 
-          {/* COPY */}
-          {translation && !error && (
-            <button
-              className="copy-button"
-              onClick={copyTranslation}
-              type="button"
-            >
-              {copied
-                ? "Copied ✓"
-                : "Copy Translation"}
-            </button>
-          )}
+          <div className="translation-result">
+
+            {translation && !error
+              ? translation
+              : outputPlaceholder}
+
+          </div>
 
         </div>
 
@@ -311,9 +324,15 @@ function App() {
 
             <div className="history-header">
 
-              <h3>
-                Translation History
-              </h3>
+              <div>
+                <p className="section-label">
+                  SAVED TRANSLATIONS
+                </p>
+
+                <h3>
+                  Translation History
+                </h3>
+              </div>
 
               <div className="history-actions">
 
@@ -321,7 +340,6 @@ function App() {
                   <button
                     className="clear-history"
                     onClick={clearHistory}
-                    type="button"
                   >
                     Clear History
                   </button>
@@ -332,7 +350,6 @@ function App() {
                   onClick={() =>
                     setShowHistory(false)
                   }
-                  type="button"
                 >
                   Close
                 </button>
@@ -341,43 +358,34 @@ function App() {
 
             </div>
 
-            {/* EMPTY HISTORY */}
             {history.length === 0 ? (
-
-              <p>
-                No translations yet.
-              </p>
-
+              <div className="empty-history">
+                <p>No translations yet.</p>
+                <span>
+                  Your previous translations will appear here.
+                </span>
+              </div>
             ) : (
-
-              /* HISTORY LIST */
               <div className="history-list">
 
                 {history.map((item) => (
-
                   <div
                     className="history-item"
                     key={item.id}
                   >
 
-                    <div>
-                      <strong>
-                        English
-                      </strong>
-
-                      <p>
-                        {item.english}
-                      </p>
+                    <div className="history-language">
+                      <strong>English</strong>
+                      <p>{item.english}</p>
                     </div>
 
-                    <div>
-                      <strong>
-                        Tamil
-                      </strong>
+                    <div className="history-arrow">
+                      →
+                    </div>
 
-                      <p>
-                        {item.tamil}
-                      </p>
+                    <div className="history-language">
+                      <strong>Tamil</strong>
+                      <p>{item.tamil}</p>
                     </div>
 
                     <small>
@@ -387,11 +395,9 @@ function App() {
                     </small>
 
                   </div>
-
                 ))}
 
               </div>
-
             )}
 
           </div>
