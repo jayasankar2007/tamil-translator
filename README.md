@@ -1,3 +1,25 @@
+# Tamil Translator
+
+A simple English ↔ Tamil translation web application built using React, TypeScript, Express, SQL and a translation API.
+
+## Live Demo
+
+https://tamil-translator.vercel.app/
+
+## GitHub Repository
+
+https://github.com/jayasankar2007/tamil-translator
+
+## Features
+
+- English → Tamil translation
+- Tamil → English interface
+- Swap language direction
+- Translation history
+- Copy translation
+- Clear translation history
+- Responsive UI
+
 # React + TypeScript + Vite
 
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
